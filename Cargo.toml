@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.24.2", features = ["rt-multi-thread", "macros"] }
-utopia = "0.0.1"
+utoipa = "2.4.2"
+utoipa-swagger-ui = "3.0.1"
 warp = "0.3.3"
