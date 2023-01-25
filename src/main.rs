@@ -16,6 +16,8 @@ struct ApiDoc;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let config = Arc::new(Config::from("/api-doc.json"));
     let swagger_ui = warp::path("swagger-ui")
         .and(warp::get())
