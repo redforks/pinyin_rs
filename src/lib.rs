@@ -1,3 +1,5 @@
+use std::str::FromStr;
+use std::string::FromUtf8Error;
 use serde::Deserialize;
 use utoipa::ToSchema;
 
@@ -52,4 +54,24 @@ pub fn first_letters(_s: &str) -> String {
     //     result.push(' ');
     // }
     // result
+}
+
+/// Warp `param()` function not decode url encoded string.
+/// Use this type to decode raw url encoded string to a `String`.
+/// See: https://github.com/seanmonstar/warp/issues/242
+#[derive(Debug)]
+pub struct UrlEncodedString(String);
+
+impl FromStr for UrlEncodedString {
+    type Err = FromUtf8Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+impl From<UrlEncodedString> for String {
+    fn from(value: UrlEncodedString) -> Self {
+        todo!()
+    }
 }

@@ -588,6 +588,7 @@ name = "pinyin"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "percent-encoding",
  "serde",
  "tokio",
  "utoipa",

@@ -8,17 +8,17 @@ use warp::{http::{Response, StatusCode, Uri},
 };
 #[cfg(feature = "swagger")]
 use utoipa_swagger_ui::Config;
-use pinyin::{ToneRepresentation};
+use pinyin::{ToneRepresentation, UrlEncodedString};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     env_logger::init();
 
-    let pinyin = warp::path!("pinyin" / String)
+    let pinyin = warp::path!("pinyin" / UrlEncodedString)
         .and(warp::get())
         .and(warp::query::<PinYinQuery>())
         .map(pinyin_handler);
-    let first_letters = warp::path!("first-letter"/ String)
+    let first_letters = warp::path!("first-letter"/ UrlEncodedString)
         .and(warp::get())
         .map(first_letters_handler);
     let web = pinyin.or(first_letters);
@@ -67,7 +67,8 @@ utoipa::path(
         ("t"=inline(Option<ToneRepresentation>), Query, description="How to represent the tone of a pinyin syllable."),
     )
 ))]
-fn pinyin_handler(s: String, q: PinYinQuery) -> impl Reply {
+fn pinyin_handler(s: UrlEncodedString, q: PinYinQuery) -> impl Reply {
+    let s: String = s.into();
      pinyin::pinyin(&s, q.tone_repr)
 }
 
@@ -78,7 +79,8 @@ utoipa::path(
     responses((status = 200, description = "Replace Chinese characters with their first letter.")),
     params(("s"=String, Path, description="String to convert"))
 ))]
-fn first_letters_handler(s: String) -> impl Reply {
+fn first_letters_handler(s: UrlEncodedString) -> impl Reply {
+    let s: String = s.into();
     pinyin::first_letters(&s)
 }
 
