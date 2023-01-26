@@ -14,7 +14,7 @@ paths(hello)
 )]
 struct ApiDoc;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     env_logger::init();
 
