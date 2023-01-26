@@ -2,7 +2,14 @@ use modular_bitfield::prelude::*;
 use std::fmt::{Display, Formatter};
 
 #[derive(
-    Clone, Copy, Eq, PartialEq, BitfieldSpecifier, strum_macros::Display, strum_macros::AsRefStr,
+    Debug,
+    Clone,
+    Copy,
+    Eq,
+    PartialEq,
+    BitfieldSpecifier,
+    strum_macros::Display,
+    strum_macros::AsRefStr,
 )]
 #[bits = 5]
 #[strum(serialize_all = "snake_case")]
