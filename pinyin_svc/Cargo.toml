@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-env_logger = "0.10.0"
+env_logger = {version ="0.10.0", default-features = false}
 percent-encoding = "2.2.0"
 tokio = { version = "1.24.2", features = ["rt", "macros"] }
 utoipa = {version = "2.4.2", optional = true}
 utoipa-swagger-ui = {version = "3.0.1", optional = true}
-warp = "0.3.3"
+warp = { version="0.3.3", default-features = false}
 pinyin = { path = "../pinyin", default_features = false }
 serde = {version ="1.0.152", features = ["derive"]}
 
