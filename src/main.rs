@@ -12,7 +12,7 @@ use utoipa_swagger_ui::Config;
 async fn main() {
     env_logger::init();
 
-    let home = warp::path("hello")
+    let home = warp::path!("hello" / String)
         .and(warp::get())
         .map(hello);
     let web = home;
@@ -47,13 +47,14 @@ async fn main() {
 #[cfg_attr(feature = "swagger",
 utoipa::path(
 get,
-path = "/hello",
-responses((status = 200, description = "hello"))
+path = "/hello/{name}",
+responses((status = 200, description = "hello")),
+params(
+    ("name"=String, Path, description="name to hello")
+)
 ))]
-fn hello() -> impl Reply {
-    warp::reply::html(
-        "<h1>Hello, world!</h1>".to_string(),
-    )
+fn hello(name: String) -> impl Reply {
+    warp::reply::html( format!("<h1>Hello, {}!</h1>", name) )
 }
 
 #[cfg(feature = "swagger")]
