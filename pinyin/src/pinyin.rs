@@ -47,9 +47,10 @@ enum Initials {
     W,
 }
 
-#[derive(BitfieldSpecifier)]
+#[derive(BitfieldSpecifier, strum_macros::Display)]
 #[bits = 8]
 #[repr(u8)]
+#[strum(serialize_all = "snake_case")]
 enum Finals {
     A,
     O,
@@ -78,10 +79,15 @@ enum Finals {
     Uang,
     Ueng,
     Ung,
+    #[strum(serialize = "ü")]
     V,
+    #[strum(serialize = "üe")]
     VE,
+    #[strum(serialize = "üan")]
     Van,
+    #[strum(serialize = "üang")]
     Vang,
+    #[strum(serialize = "üeng")]
     Veng,
     NG,
 }
@@ -113,6 +119,15 @@ mod tests {
     #[case("b", Initials::B)]
     #[case("zh", Initials::ZH)]
     fn initials_display(#[case] exp: &str, #[case] val: Initials) {
+        assert_eq!(exp, val.to_string());
+    }
+
+    #[rstest]
+    #[case("a", Finals::A)]
+    #[case("eng", Finals::Eng)]
+    #[case("ü", Finals::V)]
+    #[case("üang", Finals::Vang)]
+    fn finals_display(#[case] exp: &str, #[case] val: Finals) {
         assert_eq!(exp, val.to_string());
     }
 }
