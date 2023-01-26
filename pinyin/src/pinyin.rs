@@ -1,21 +1,5 @@
 use modular_bitfield::prelude::*;
-use serde::Deserialize;
 use std::fmt::{Display, Formatter};
-
-/// How to represent the tone of a pinyin syllable.
-#[derive(Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(feature = "swagger", derive(utoipa::ToSchema))]
-pub enum ToneRepresentation {
-    None,
-    Numbered,
-    Unicode,
-}
-
-impl Default for ToneRepresentation {
-    fn default() -> Self {
-        Self::Unicode
-    }
-}
 
 #[derive(
     Clone, Copy, Eq, PartialEq, BitfieldSpecifier, strum_macros::Display, strum_macros::AsRefStr,
