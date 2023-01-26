@@ -8,7 +8,8 @@ use warp::{http::{Response, StatusCode, Uri},
 };
 #[cfg(feature = "swagger")]
 use utoipa_swagger_ui::Config;
-use pinyin::{ToneRepresentation, UrlEncodedString};
+use pinyin::{ToneRepresentation};
+use pinyin_svc::UrlEncodedString;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
