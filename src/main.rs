@@ -8,26 +8,29 @@ use warp::{http::{Response, StatusCode, Uri},
 };
 #[cfg(feature = "swagger")]
 use utoipa_swagger_ui::Config;
-use pinyin::ToneRepresentation;
+use pinyin::{ToneRepresentation};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     env_logger::init();
 
-    let home = warp::path!("hello" / String)
+    let hello = warp::path!("hello" / String)
         .and(warp::get())
         .map(hello);
     let pinyin = warp::path!("pinyin" / String)
         .and(warp::get())
         .and(warp::query::<PinYinQuery>())
         .map(pinyin_handler);
-    let web = home.or(pinyin);
+    let first_letters = warp::path!("first-letter"/ String)
+        .and(warp::get())
+        .map(first_letters_handler);
+    let web = hello.or(pinyin).or(first_letters);
     let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 3030));
     #[cfg(feature = "swagger")] {
         use utoipa::OpenApi;
 
         #[derive(OpenApi)]
-        #[openapi(paths(hello, pinyin_handler))]
+        #[openapi(paths(hello, pinyin_handler, first_letters_handler))]
         struct ApiDoc;
 
         let api_doc = warp::path("api-doc.json")
@@ -72,16 +75,27 @@ pub struct PinYinQuery {
 /// Return pinyin of a Chinese characters separated by space.
 #[cfg_attr(feature = "swagger",
 utoipa::path(
-get,
-path = "/pinyin/{s}",
-responses((status = 200, description = "Return pinyin of a Chinese characters separated by space")),
-params(
-    ("s"=String, Path, description="String to convert"),
-    ("t"=inline(Option<ToneRepresentation>), Query, description="How to represent the tone of a pinyin syllable."),
-)
+    get,
+    path = "/pinyin/{s}",
+    responses((status = 200, description = "Return pinyin of a Chinese characters separated by space")),
+    params(
+        ("s"=String, Path, description="String to convert"),
+        ("t"=inline(Option<ToneRepresentation>), Query, description="How to represent the tone of a pinyin syllable."),
+    )
 ))]
 fn pinyin_handler(s: String, q: PinYinQuery) -> impl Reply {
      pinyin::pinyin(&s, q.tone_repr)
+}
+
+#[cfg_attr(feature = "swagger",
+utoipa::path(
+    get,
+    path = "/first-letters/{s}",
+    responses((status = 200, description = "Replace Chinese characters with their first letter.")),
+    params(("s"=String, Path, description="String to convert"))
+))]
+fn first_letters_handler(s: String) -> impl Reply {
+    pinyin::first_letters(&s)
 }
 
 #[cfg(feature = "swagger")]
