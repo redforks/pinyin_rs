@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use std::string::FromUtf8Error;
+use core::str::Utf8Error;
 use serde::Deserialize;
 use utoipa::ToSchema;
 
@@ -63,15 +63,29 @@ pub fn first_letters(_s: &str) -> String {
 pub struct UrlEncodedString(String);
 
 impl FromStr for UrlEncodedString {
-    type Err = FromUtf8Error;
+    type Err = Utf8Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let s = percent_encoding::percent_decode(s.as_bytes())
+            .decode_utf8()?;
+        Ok(Self(s.to_string()))
     }
 }
 
 impl From<UrlEncodedString> for String {
     fn from(value: UrlEncodedString) -> Self {
-        todo!()
+        value.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn url_encoded_string() {
+        let s = "hello%20world";
+        let s: UrlEncodedString = s.parse().unwrap();
+        assert_eq!(&String::from(s), "hello world");
     }
 }
