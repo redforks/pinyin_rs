@@ -1,19 +1,6 @@
-use serde::Deserialize;
+mod pinyin;
+pub use pinyin::{ToneRepresentation, Pinyin};
 
-/// How to represent the tone of a pinyin syllable.
-#[derive(Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(feature = "swagger", derive(utoipa::ToSchema))]
-pub enum ToneRepresentation {
-    None,
-    Numbered,
-    Unicode,
-}
-
-impl Default for ToneRepresentation {
-    fn default() -> Self {
-        Self::Unicode
-    }
-}
 
 /// Return pinyin of a Chinese characters separated by space.
 pub fn pinyin(_s: &str, _tone_repr: ToneRepresentation) -> String {
