@@ -1,4 +1,5 @@
 use std::net::{Ipv4Addr, SocketAddr};
+use serde::Deserialize;
 use warp::{Filter, Reply};
 #[cfg(feature = "swagger")]
 use warp::{http::{Response, StatusCode, Uri},
@@ -7,6 +8,7 @@ use warp::{http::{Response, StatusCode, Uri},
 };
 #[cfg(feature = "swagger")]
 use utoipa_swagger_ui::Config;
+use pinyin::ToneRepresentation;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -15,13 +17,17 @@ async fn main() {
     let home = warp::path!("hello" / String)
         .and(warp::get())
         .map(hello);
-    let web = home;
+    let pinyin = warp::path!("pinyin" / String)
+        .and(warp::get())
+        .and(warp::query::<PinYinQuery>())
+        .map(pinyin_handler);
+    let web = home.or(pinyin);
     let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 3030));
     #[cfg(feature = "swagger")] {
         use utoipa::OpenApi;
 
         #[derive(OpenApi)]
-        #[openapi(paths(hello))]
+        #[openapi(paths(hello, pinyin_handler))]
         struct ApiDoc;
 
         let api_doc = warp::path("api-doc.json")
@@ -55,6 +61,27 @@ params(
 ))]
 fn hello(name: String) -> impl Reply {
     warp::reply::html( format!("<h1>Hello, {}!</h1>", name) )
+}
+
+#[derive(Deserialize)]
+pub struct PinYinQuery {
+    #[serde(alias = "t", default)]
+    tone_repr: ToneRepresentation,
+}
+
+/// Return pinyin of a Chinese characters separated by space.
+#[cfg_attr(feature = "swagger",
+utoipa::path(
+get,
+path = "/pinyin/{s}",
+responses((status = 200, description = "Return pinyin of a Chinese characters separated by space")),
+params(
+    ("s"=String, Path, description="String to convert"),
+    ("t"=inline(Option<ToneRepresentation>), Query, description="How to represent the tone of a pinyin syllable."),
+)
+))]
+fn pinyin_handler(s: String, q: PinYinQuery) -> impl Reply {
+     pinyin::pinyin(&s, q.tone_repr)
 }
 
 #[cfg(feature = "swagger")]
