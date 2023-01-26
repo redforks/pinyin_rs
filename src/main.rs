@@ -14,9 +14,6 @@ use pinyin::{ToneRepresentation};
 async fn main() {
     env_logger::init();
 
-    let hello = warp::path!("hello" / String)
-        .and(warp::get())
-        .map(hello);
     let pinyin = warp::path!("pinyin" / String)
         .and(warp::get())
         .and(warp::query::<PinYinQuery>())
@@ -24,13 +21,13 @@ async fn main() {
     let first_letters = warp::path!("first-letter"/ String)
         .and(warp::get())
         .map(first_letters_handler);
-    let web = hello.or(pinyin).or(first_letters);
+    let web = pinyin.or(first_letters);
     let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 3030));
     #[cfg(feature = "swagger")] {
         use utoipa::OpenApi;
 
         #[derive(OpenApi)]
-        #[openapi(paths(hello, pinyin_handler, first_letters_handler))]
+        #[openapi(paths(pinyin_handler, first_letters_handler))]
         struct ApiDoc;
 
         let api_doc = warp::path("api-doc.json")
@@ -51,19 +48,6 @@ async fn main() {
     #[cfg(not(feature = "swagger"))] {
         warp::serve(web).run(addr).await
     }
-}
-
-#[cfg_attr(feature = "swagger",
-utoipa::path(
-get,
-path = "/hello/{name}",
-responses((status = 200, description = "hello")),
-params(
-    ("name"=String, Path, description="name to hello")
-)
-))]
-fn hello(name: String) -> impl Reply {
-    warp::reply::html( format!("<h1>Hello, {}!</h1>", name) )
 }
 
 #[derive(Deserialize)]
