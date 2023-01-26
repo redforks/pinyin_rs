@@ -16,9 +16,11 @@ impl Default for ToneRepresentation {
     }
 }
 
-#[derive(BitfieldSpecifier)]
+#[derive(BitfieldSpecifier, strum_macros::Display)]
 #[bits = 5]
+#[strum(serialize_all = "snake_case")]
 enum Initials {
+    #[strum(serialize = "")]
     None,
     B,
     P,
@@ -99,4 +101,18 @@ pub struct Pinyin {
     tones: Tones,
     initials: Initials,
     finals: Finals,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("", Initials::None)]
+    #[case("b", Initials::B)]
+    #[case("zh", Initials::ZH)]
+    fn initials_display(#[case] exp: &str, #[case] val: Initials) {
+        assert_eq!(exp, val.to_string());
+    }
 }
