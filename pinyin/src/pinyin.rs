@@ -90,13 +90,18 @@ pub enum Finals {
     Van,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, BitfieldSpecifier)]
+#[derive(Copy, Clone, PartialEq, Eq, BitfieldSpecifier, strum_macros::Display)]
 #[bits = 3]
 pub enum Tones {
+    #[strum(serialize = "")]
     None,
+    #[strum(serialize = "1")]
     One,
+    #[strum(serialize = "2")]
     Two,
+    #[strum(serialize = "3")]
     Three,
+    #[strum(serialize = "4")]
     Four,
 }
 
@@ -274,10 +279,24 @@ impl Display for PinyinDisplay {
         };
 
         f.write_fmt(format_args!("{}", initials))?;
-        if tones == Tones::None {
-            f.write_fmt(format_args!("{}", finals))
-        } else {
-            f.write_str(finals_with_tones_to_string(finals, tones))
+        match self {
+            PinyinDisplay::UnicodeTone(p) => {
+                if tones == Tones::None {
+                    f.write_fmt(format_args!("{}", finals))
+                } else {
+                    f.write_str(finals_with_tones_to_string(finals, tones))
+                }
+            }
+            PinyinDisplay::NumberedTone(p) => {
+                f.write_fmt(format_args!("{}", finals))?;
+                f.write_fmt(format_args!("{}", tones))
+            }
+            PinyinDisplay::NoTones(p) => {
+                todo!()
+            }
+            PinyinDisplay::FirstLetter(p) => {
+                todo!()
+            }
         }
     }
 }
@@ -311,5 +330,17 @@ mod tests {
     #[case("ēr", py(Initials::None, Finals::ER, Tones::One))]
     fn pinyin_unicode_format(#[case] exp: &str, #[case] val: Pinyin) {
         assert_eq!(exp, val.to_string());
+    }
+
+    #[rstest]
+    #[case("a", py(Initials::None, Finals::A, Tones::None))]
+    #[case("beng", py(Initials::B, Finals::Eng, Tones::None))]
+    #[case("zhü1", py(Initials::ZH, Finals::V, Tones::One))]
+    #[case("a1", py(Initials::None, Finals::A, Tones::One))]
+    #[case("a2", py(Initials::None, Finals::A, Tones::Two))]
+    #[case("a3", py(Initials::None, Finals::A, Tones::Three))]
+    #[case("a4", py(Initials::None, Finals::A, Tones::Four))]
+    fn pinyin_numbered_format(#[case] exp: &str, #[case] val: Pinyin) {
+        assert_eq!(exp, PinyinDisplay::NumberedTone(val).to_string());
     }
 }
