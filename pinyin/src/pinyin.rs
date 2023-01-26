@@ -17,7 +17,9 @@ impl Default for ToneRepresentation {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, BitfieldSpecifier, strum_macros::Display)]
+#[derive(
+    Clone, Copy, Eq, PartialEq, BitfieldSpecifier, strum_macros::Display, strum_macros::AsRefStr,
+)]
 #[bits = 5]
 #[strum(serialize_all = "snake_case")]
 pub enum Initials {
@@ -48,7 +50,9 @@ pub enum Initials {
     W,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, BitfieldSpecifier, strum_macros::Display)]
+#[derive(
+    Clone, Copy, PartialEq, Eq, BitfieldSpecifier, strum_macros::Display, strum_macros::AsRefStr,
+)]
 #[bits = 8]
 #[repr(u8)]
 #[strum(serialize_all = "snake_case")]
@@ -271,32 +275,28 @@ fn finals_with_tones_to_string(finals: Finals, tones: Tones) -> &'static str {
 
 impl Display for PinyinDisplay {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let (initials, finals, tones) = match self {
-            PinyinDisplay::UnicodeTone(p) => (p.initials(), p.finals(), p.tones()),
-            PinyinDisplay::NumberedTone(p) => (p.initials(), p.finals(), p.tones()),
-            PinyinDisplay::NoTones(p) => (p.initials(), p.finals(), p.tones()),
-            PinyinDisplay::FirstLetter(p) => (p.initials(), p.finals(), p.tones()),
-        };
-
-        f.write_fmt(format_args!("{}", initials))?;
         match self {
             PinyinDisplay::UnicodeTone(p) => {
-                if tones == Tones::None {
-                    f.write_fmt(format_args!("{}", finals))
+                f.write_fmt(format_args!("{}", p.initials()))?;
+                if p.tones() == Tones::None {
+                    f.write_fmt(format_args!("{}", p.finals()))
                 } else {
-                    f.write_str(finals_with_tones_to_string(finals, tones))
+                    f.write_str(finals_with_tones_to_string(p.finals(), p.tones()))
                 }
             }
             PinyinDisplay::NumberedTone(p) => {
-                f.write_fmt(format_args!("{}", finals))?;
-                f.write_fmt(format_args!("{}", tones))
+                f.write_fmt(format_args!("{}", p.initials()))?;
+                f.write_fmt(format_args!("{}", p.finals()))?;
+                f.write_fmt(format_args!("{}", p.tones()))
             }
             PinyinDisplay::NoTones(p) => {
-                todo!()
+                f.write_fmt(format_args!("{}", p.initials()))?;
+                f.write_fmt(format_args!("{}", p.finals()))
             }
-            PinyinDisplay::FirstLetter(p) => {
-                todo!()
-            }
+            PinyinDisplay::FirstLetter(p) => match p.initials() {
+                Initials::None => f.write_str(&p.finals().as_ref()[0..1]),
+                _ => f.write_str(&p.initials().as_ref()[0..1]),
+            },
         }
     }
 }
@@ -342,5 +342,25 @@ mod tests {
     #[case("a4", py(Initials::None, Finals::A, Tones::Four))]
     fn pinyin_numbered_format(#[case] exp: &str, #[case] val: Pinyin) {
         assert_eq!(exp, PinyinDisplay::NumberedTone(val).to_string());
+    }
+
+    #[rstest]
+    #[case("a", py(Initials::None, Finals::A, Tones::None))]
+    #[case("beng", py(Initials::B, Finals::Eng, Tones::None))]
+    #[case("zhü", py(Initials::ZH, Finals::V, Tones::One))]
+    #[case("a", py(Initials::None, Finals::A, Tones::One))]
+    fn no_tones_format(#[case] exp: &str, #[case] val: Pinyin) {
+        assert_eq!(exp, PinyinDisplay::NoTones(val).to_string());
+    }
+
+    #[rstest]
+    #[case("a", py(Initials::None, Finals::A, Tones::Two))]
+    #[case("b", py(Initials::B, Finals::Eng, Tones::None))]
+    #[case("z", py(Initials::ZH, Finals::V, Tones::One))]
+    #[case("a", py(Initials::None, Finals::A, Tones::One))]
+    #[case("e", py(Initials::None, Finals::ER, Tones::One))]
+    #[case("s", py(Initials::SH, Finals::I, Tones::One))]
+    fn first_letter_format(#[case] exp: &str, #[case] val: Pinyin) {
+        assert_eq!(exp, PinyinDisplay::FirstLetter(val).to_string());
     }
 }
