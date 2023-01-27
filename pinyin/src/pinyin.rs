@@ -1,4 +1,4 @@
-use modular_bitfield::prelude::*;
+use modular_bitfield::prelude::{bitfield, BitfieldSpecifier};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -12,6 +12,7 @@ use std::str::FromStr;
     BitfieldSpecifier,
     strum_macros::Display,
     strum_macros::AsRefStr,
+    strum_macros::EnumIter,
 )]
 #[bits = 5]
 #[strum(serialize_all = "snake_case")]
@@ -125,6 +126,20 @@ pub struct Pinyin {
     tones: Tones,
     initials: Initials,
     finals: Finals,
+}
+
+impl From<Pinyin> for u16 {
+    fn from(p: Pinyin) -> Self {
+        let bytes = p.into_bytes();
+        u16::from_be_bytes(bytes)
+    }
+}
+
+impl From<u16> for Pinyin {
+    fn from(value: u16) -> Self {
+        let bytes = value.to_be_bytes();
+        Pinyin::from_bytes(bytes)
+    }
 }
 
 /// create a new pinyin syllable
@@ -561,5 +576,16 @@ mod tests {
                 assert_eq!(fwt, FinalWithTones(f, t));
             }
         });
+    }
+
+    #[test]
+    fn pinyin_into_u16() {
+        itertools::iproduct!(Initials::iter(), Finals::iter(), Tones::iter()).for_each(
+            |(i, f, t)| {
+                let p = py(i, f, t);
+                let n: u16 = p.into();
+                assert_eq!(p, n.into());
+            },
+        );
     }
 }
