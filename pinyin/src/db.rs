@@ -77,6 +77,10 @@ impl DB {
         debug_assert_eq!(page[offset as usize], Polyphone::default());
         page[offset as usize] = polyphone;
     }
+
+    pub fn shrink_to_fit(&mut self) {
+        self.pages.shrink_to_fit();
+    }
 }
 
 #[cfg(test)]

@@ -134,6 +134,7 @@ pub fn parse_db(i: &str) -> Result<DB, nom::error::Error<&str>> {
             for (ch, polyphone) in iter {
                 db.insert(ch, polyphone);
             }
+            db.shrink_to_fit();
             Ok(db)
         }
         Err(nom::Err::Incomplete(_)) => unreachable!(),
