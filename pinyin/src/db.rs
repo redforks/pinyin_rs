@@ -1,9 +1,11 @@
-use crate::db::parser::PinyinList;
 use crate::Pinyin;
+use std::collections::HashMap;
+use std::ops::{Index, IndexMut};
+use std::str::Chars;
 
 mod parser;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Polyphone(u16, u16, u16);
 
 impl Polyphone {
@@ -33,6 +35,46 @@ impl From<Vec<Pinyin>> for Polyphone {
         Self(first.into(), second.into(), third.into())
     }
 }
+
+/// Pinyin database for each chinese character.
+/// Indexed by unicode code point.
+pub struct DB {
+    pages: HashMap<u8, [Polyphone; 256]>,
+}
+
+impl DB {
+    pub fn new() -> Self {
+        Self {
+            pages: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, c: char) -> Option<Polyphone> {
+        let code_point = c as u32;
+        let page = (code_point >> 8) as u8;
+        let offset = code_point as u8;
+        self.pages.get(&page).and_then(|page| {
+            let r = page[offset as usize];
+            if r == Polyphone::default() {
+                None
+            } else {
+                Some(r)
+            }
+        })
+    }
+
+    pub fn put(&mut self, c: char, polyphone: Polyphone) {
+        let code_point = c as u32;
+        let page = (code_point >> 8) as u8;
+        let offset = code_point as u8;
+        let page = self
+            .pages
+            .entry(page)
+            .or_insert_with(|| [Polyphone::default(); 256]);
+        page[offset as usize] = polyphone;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -57,5 +99,17 @@ mod tests {
         let v = vec![py1];
         let p = Polyphone::from(v);
         assert_eq!((p.0, p.1, p.2), (py1.into(), 0, 0));
+    }
+
+    #[test]
+    fn db_put_get() {
+        let mut db = DB::new();
+        let polyphone = Polyphone::new(1, 0, 0);
+        db.put('a', polyphone);
+        assert_eq!(db.get('a'), Some(polyphone));
+
+        db.put('汉', polyphone);
+        assert_eq!(db.get('汉'), Some(polyphone));
+        assert_eq!(db.get('b'), None);
     }
 }
