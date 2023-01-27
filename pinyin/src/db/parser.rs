@@ -5,7 +5,7 @@ use nom::{
     bytes::complete::tag,
     bytes::streaming::is_not,
     character::complete::{char, hex_digit1, newline, space0},
-    combinator::{all_consuming, map_res, opt, value},
+    combinator::{map_res, opt, value},
     multi::{many0, separated_list1},
     sequence::{pair, preceded, separated_pair, terminated, tuple},
     IResult, InputTakeAtPosition,
@@ -20,7 +20,7 @@ fn comment(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
 fn code_point(i: &str) -> IResult<&str, char> {
     // parse a char in the form of U+XXXX
     preceded(
-        tag("+U"),
+        tag("U+"),
         map_res(hex_digit1, |s: &str| -> Result<char, ParseIntError> {
             let code_point = u32::from_str_radix(s, 16)?;
             Ok(char::from_u32(code_point).unwrap())
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn parse_code_point() {
-        assert_eq!(code_point("+U4E2D"), Ok(("", '中')));
+        assert_eq!(code_point("U+4E2D"), Ok(("", '中')));
     }
 
     #[test]
@@ -191,7 +191,7 @@ mod tests {
     fn test_parse_line() {
         // assert_eq!(parse_line("# Hello world"), Ok(("", None)));
         assert_eq!(
-            parse_line("+U4E2D: zhōng\n"),
+            parse_line("U+4E2D: zhōng\n"),
             Ok((
                 "",
                 Some((
@@ -201,7 +201,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            parse_line("+U4E2D: zhōng,zhòng\n"),
+            parse_line("U+4E2D: zhōng,zhòng\n"),
             Ok((
                 "",
                 Some((
@@ -214,7 +214,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            parse_line("+U4E2D: zhōng,zhòng # comment\n"),
+            parse_line("U+4E2D: zhōng,zhòng # comment\n"),
             Ok((
                 "",
                 Some((
