@@ -71,7 +71,9 @@ fn is_pinyin_char(c: char) -> bool {
             'ō' | 'ó' | 'ǒ' | 'ò' |
             'ū' | 'ú' | 'ǔ' | 'ù' |
             'ǖ' | 'ǘ' | 'ǚ' | 'ǜ' |
-            'ü')
+            'ü' |
+            'ń' | 'ň' | 'ǹ'
+        )
     }
 }
 
@@ -83,7 +85,7 @@ fn final_and_tones(i: &str) -> IResult<&str, FinalWithTones> {
         Ok(r) => Ok((i, r)),
         Err(_) => Err(nom::Err::Error(nom::error::Error::new(
             i,
-            nom::error::ErrorKind::AlphaNumeric,
+            nom::error::ErrorKind::Tag,
         ))),
     }
 }
@@ -169,10 +171,22 @@ mod tests {
         assert_eq!(initials("zh"), Ok(("", Initials::ZH)));
     }
 
+    #[test]
+    fn test_is_py_chr() {
+        assert!(is_pinyin_char('a'));
+        assert!(is_pinyin_char('á'));
+        assert!(is_pinyin_char('ǎ'));
+        assert!(is_pinyin_char('ǔ'));
+        assert!(is_pinyin_char('ǜ'));
+        assert!(is_pinyin_char('ú'));
+    }
+
     #[rstest]
     #[case("a", Finals::A, Tones::None)]
     #[case("á", Finals::A, Tones::Two)]
     #[case("ang", Finals::Ang, Tones::None)]
+    #[case("ǎn", Finals::AN, Tones::Three)]
+    #[case("ún", Finals::UN, Tones::Two)]
     fn parse_final_and_tones(#[case] s: &str, #[case] finals: Finals, #[case] tones: Tones) {
         assert_eq!(final_and_tones(s), Ok(("", FinalWithTones(finals, tones))));
     }
@@ -180,6 +194,7 @@ mod tests {
     #[rstest]
     #[case("a", Initials::None, Finals::A, Tones::None)]
     #[case("bá", Initials::B, Finals::A, Tones::Two)]
+    #[case("hún", Initials::H, Finals::UN, Tones::Two)]
     fn parse_pinyin(
         #[case] s: &str,
         #[case] initials: Initials,
@@ -274,6 +289,7 @@ U+3007: líng,yuán,xīng  # 〇
         let count = parse_lines(include_str!("../pinyin.txt")).unwrap().count();
         assert!(count > 20902, "count = {}", count);
         let db = parse_db(include_str!("../pinyin.txt")).unwrap();
-        let po = db.get('𰻞').unwrap();
+        let po: Pinyin = db.get('𰻞').unwrap().into();
+        assert_eq!(po, py(Initials::B, Finals::Iang, Tones::Two));
     }
 }

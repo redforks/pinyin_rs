@@ -369,6 +369,12 @@ impl FromStr for FinalWithTones {
             "ér" => FinalWithTones(Finals::ER, Tones::Two),
             "ěr" => FinalWithTones(Finals::ER, Tones::Three),
             "èr" => FinalWithTones(Finals::ER, Tones::Four),
+            "ń" => FinalWithTones(Finals::EN, Tones::Two),
+            "ň" => FinalWithTones(Finals::EN, Tones::Three),
+            "ǹ" => FinalWithTones(Finals::EN, Tones::Four),
+            "ńg" => FinalWithTones(Finals::Eng, Tones::Two),
+            "ňg" => FinalWithTones(Finals::Eng, Tones::Three),
+            "ǹg" => FinalWithTones(Finals::Eng, Tones::Four),
             _ => FinalWithTones(Finals::None, Tones::None),
         };
         if let FinalWithTones(Finals::None, Tones::None) = r {

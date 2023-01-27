@@ -63,12 +63,14 @@ impl DB {
 
     pub fn insert(&mut self, c: char, polyphone: Polyphone) {
         let code_point = c as u32;
+        debug_assert!(code_point <= 0xffff);
         let page = (code_point >> 8) as u8;
         let offset = code_point as u8;
         let page = self
             .pages
             .entry(page)
             .or_insert_with(|| [Polyphone::default(); 256]);
+        debug_assert_eq!(page[offset as usize], Polyphone::default());
         page[offset as usize] = polyphone;
     }
 }
