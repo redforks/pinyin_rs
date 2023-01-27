@@ -126,8 +126,7 @@ fn parse_line(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
 
 pub fn parse_lines(i: &str) -> IResult<&str, Vec<(char, PinyinList)>> {
     let (remains, lines) = many0(alt((empty_line, comment, parse_line)))(i)?;
-    let lines = lines.into_iter().filter_map(|x| x).collect();
-    // let (remains, _) = opt(newline)(remains)?;
+    let lines = lines.into_iter().flatten().collect();
     Ok((remains, lines))
 }
 
