@@ -1,4 +1,4 @@
-use crate::db::Polyphone;
+use crate::db::{Polyphone, DB};
 use crate::pinyin::{py, FinalWithTones, Initials};
 use crate::Pinyin;
 use nom::{
@@ -112,10 +112,32 @@ fn parse_line(i: &str) -> IResult<&str, Option<(char, Polyphone)>> {
     Ok((remains, Some((ch, pinyin_list.into()))))
 }
 
-pub fn parse_lines(i: &str) -> IResult<&str, Vec<(char, Polyphone)>> {
+fn parse_lines(
+    i: &str,
+) -> Result<impl Iterator<Item = (char, Polyphone)>, nom::Err<nom::error::Error<&str>>> {
     let (remains, lines) = many0(alt((empty_line, comment, parse_line)))(i)?;
-    let lines = lines.into_iter().flatten().collect();
-    Ok((remains, lines))
+    if !remains.is_empty() {
+        panic!(
+            "remains: {}",
+            remains.chars().into_iter().take(10).collect::<String>()
+        );
+    }
+    Ok(lines.into_iter().flatten())
+}
+
+pub fn parse_db(i: &str) -> Result<DB, nom::error::Error<&str>> {
+    match parse_lines(i) {
+        Ok(iter) => {
+            let mut db = DB::new();
+            for (ch, polyphone) in iter {
+                db.insert(ch, polyphone);
+            }
+            Ok(db)
+        }
+        Err(nom::Err::Incomplete(_)) => unreachable!(),
+        Err(nom::Err::Error(e)) => Err(e),
+        Err(nom::Err::Failure(e)) => Err(e),
+    }
 }
 
 #[cfg(test)]
@@ -135,6 +157,7 @@ mod tests {
     #[test]
     fn parse_code_point() {
         assert_eq!(code_point("U+4E2D"), Ok(("", '中')));
+        assert_eq!(code_point("U+2104C"), Ok(("", '𡁌')));
     }
 
     #[test]
@@ -168,7 +191,6 @@ mod tests {
 
     #[test]
     fn test_parse_line() {
-        // assert_eq!(parse_line("# Hello world"), Ok(("", None)));
         assert_eq!(
             parse_line("U+4E2D: zhōng\n"),
             Ok((
@@ -216,35 +238,42 @@ mod tests {
 
     #[test]
     fn test_parse_lines() {
+        let parse = |s: &str| parse_lines(s).unwrap().collect::<Vec<_>>();
+
         // parse empty
-        assert_eq!(parse_lines(""), Ok(("", vec![])));
-        assert_eq!(parse_lines("\n"), Ok(("", vec![])));
+        assert_eq!(parse(""), vec![]);
+        assert_eq!(parse("\n"), vec![]);
 
         assert_eq!(
-            parse_lines(
+            parse(
                 r#" # comment
 U+4E2D: zhōng
 
 U+3007: líng,yuán,xīng  # 〇
 "#
             ),
-            Ok((
-                "",
-                vec![
-                    (
-                        '中',
-                        Polyphone(py(Initials::ZH, Finals::Ong, Tones::One).into(), 0, 0)
-                    ),
-                    (
-                        '〇',
-                        Polyphone(
-                            py(Initials::L, Finals::Ing, Tones::Two).into(),
-                            py(Initials::Y, Finals::Uan, Tones::Two).into(),
-                            py(Initials::X, Finals::Ing, Tones::One).into()
-                        )
-                    ),
-                ]
-            ))
+            vec![
+                (
+                    '中',
+                    Polyphone(py(Initials::ZH, Finals::Ong, Tones::One).into(), 0, 0)
+                ),
+                (
+                    '〇',
+                    Polyphone(
+                        py(Initials::L, Finals::Ing, Tones::Two).into(),
+                        py(Initials::Y, Finals::Uan, Tones::Two).into(),
+                        py(Initials::X, Finals::Ing, Tones::One).into()
+                    )
+                ),
+            ]
         );
+    }
+
+    #[test]
+    fn test_parse_db() {
+        let count = parse_lines(include_str!("../pinyin.txt")).unwrap().count();
+        assert!(count > 20902, "count = {}", count);
+        let db = parse_db(include_str!("../pinyin.txt")).unwrap();
+        let po = db.get('𰻞').unwrap();
     }
 }

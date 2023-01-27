@@ -1,7 +1,5 @@
 use crate::Pinyin;
 use std::collections::HashMap;
-use std::ops::{Index, IndexMut};
-use std::str::Chars;
 
 mod parser;
 
@@ -63,7 +61,7 @@ impl DB {
         })
     }
 
-    pub fn put(&mut self, c: char, polyphone: Polyphone) {
+    pub fn insert(&mut self, c: char, polyphone: Polyphone) {
         let code_point = c as u32;
         let page = (code_point >> 8) as u8;
         let offset = code_point as u8;
@@ -105,10 +103,10 @@ mod tests {
     fn db_put_get() {
         let mut db = DB::new();
         let polyphone = Polyphone::new(1, 0, 0);
-        db.put('a', polyphone);
+        db.insert('a', polyphone);
         assert_eq!(db.get('a'), Some(polyphone));
 
-        db.put('汉', polyphone);
+        db.insert('汉', polyphone);
         assert_eq!(db.get('汉'), Some(polyphone));
         assert_eq!(db.get('b'), None);
     }
