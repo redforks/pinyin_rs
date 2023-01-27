@@ -1,9 +1,10 @@
-use crate::pinyin::{FinalWithTones, Initials};
+use crate::pinyin::{py, FinalWithTones, Initials};
+use crate::Pinyin;
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     character::complete::{char, hex_digit1},
-    combinator::{map_res, value},
+    combinator::{map_res, opt, value},
     sequence::{pair, preceded},
     IResult, InputTakeAtPosition,
 };
@@ -87,6 +88,18 @@ fn final_and_tones(i: &str) -> IResult<&str, FinalWithTones> {
     }
 }
 
+fn pinyin(i: &str) -> IResult<&str, Pinyin> {
+    let (i, (initials, final_with_tones)) = pair(opt(initials), final_and_tones)(i)?;
+    Ok((
+        i,
+        py(
+            initials.unwrap_or(Initials::None),
+            final_with_tones.0,
+            final_with_tones.1,
+        ),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,5 +133,17 @@ mod tests {
     #[case("ang", Finals::Ang, Tones::None)]
     fn parse_final_and_tones(#[case] s: &str, #[case] finals: Finals, #[case] tones: Tones) {
         assert_eq!(final_and_tones(s), Ok(("", FinalWithTones(finals, tones))));
+    }
+
+    #[rstest]
+    #[case("a", Initials::None, Finals::A, Tones::None)]
+    #[case("bá", Initials::B, Finals::A, Tones::Two)]
+    fn parse_pinyin(
+        #[case] s: &str,
+        #[case] initials: Initials,
+        #[case] finals: Finals,
+        #[case] tones: Tones,
+    ) {
+        assert_eq!(pinyin(s), Ok(("", py(initials, finals, tones))));
     }
 }
