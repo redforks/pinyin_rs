@@ -1,3 +1,4 @@
+use crate::db::Polyphone;
 use crate::pinyin::{py, FinalWithTones, Initials};
 use crate::Pinyin;
 use nom::{
@@ -13,7 +14,7 @@ use nom::{
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-fn comment(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
+fn comment(i: &str) -> IResult<&str, Option<(char, Polyphone)>> {
     value(None, tuple((space0, char('#'), opt(is_not("\n")), newline)))(i)
 }
 
@@ -99,24 +100,11 @@ fn pinyin(i: &str) -> IResult<&str, Pinyin> {
     ))
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct PinyinList(pub (Pinyin, Option<Pinyin>, Option<Pinyin>));
-
-impl From<Vec<Pinyin>> for PinyinList {
-    fn from(value: Vec<Pinyin>) -> Self {
-        let mut iter = value.into_iter();
-        let first = iter.next().unwrap();
-        let second = iter.next();
-        let third = iter.next();
-        PinyinList((first, second, third))
-    }
-}
-
-fn empty_line(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
+fn empty_line(i: &str) -> IResult<&str, Option<(char, Polyphone)>> {
     value(None, pair(space0, newline))(i)
 }
 
-fn parse_line(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
+fn parse_line(i: &str) -> IResult<&str, Option<(char, Polyphone)>> {
     let pn_list = separated_list1(char(','), pinyin);
     let char_and_pinyin = separated_pair(code_point, tag(": "), pn_list);
     let mut line = terminated(char_and_pinyin, alt((comment, empty_line)));
@@ -124,7 +112,7 @@ fn parse_line(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
     Ok((remains, Some((ch, pinyin_list.into()))))
 }
 
-pub fn parse_lines(i: &str) -> IResult<&str, Vec<(char, PinyinList)>> {
+pub fn parse_lines(i: &str) -> IResult<&str, Vec<(char, Polyphone)>> {
     let (remains, lines) = many0(alt((empty_line, comment, parse_line)))(i)?;
     let lines = lines.into_iter().flatten().collect();
     Ok((remains, lines))
@@ -179,14 +167,6 @@ mod tests {
     }
 
     #[test]
-    fn vec_to_pinyin_list() {
-        let py1 = py(Initials::None, Finals::A, Tones::None);
-        let v = vec![py1];
-        let p = PinyinList::from(v);
-        assert_eq!(p.0, (py1, None, None));
-    }
-
-    #[test]
     fn test_parse_line() {
         // assert_eq!(parse_line("# Hello world"), Ok(("", None)));
         assert_eq!(
@@ -195,7 +175,7 @@ mod tests {
                 "",
                 Some((
                     '中',
-                    PinyinList::from(vec![py(Initials::ZH, Finals::Ong, Tones::One)])
+                    Polyphone::from(vec![py(Initials::ZH, Finals::Ong, Tones::One)])
                 ))
             ))
         );
@@ -205,7 +185,7 @@ mod tests {
                 "",
                 Some((
                     '中',
-                    PinyinList::from(vec![
+                    Polyphone::from(vec![
                         py(Initials::ZH, Finals::Ong, Tones::One),
                         py(Initials::ZH, Finals::Ong, Tones::Four)
                     ])
@@ -218,7 +198,7 @@ mod tests {
                 "",
                 Some((
                     '中',
-                    PinyinList::from(vec![
+                    Polyphone::from(vec![
                         py(Initials::ZH, Finals::Ong, Tones::One),
                         py(Initials::ZH, Finals::Ong, Tones::Four),
                     ])
@@ -253,15 +233,11 @@ mod tests {
                 vec![
                     (
                         '中',
-                        PinyinList((py(Initials::ZH, Finals::Ong, Tones::One), None, None))
+                        Polyphone(py(Initials::ZH, Finals::Ong, Tones::One).into(), 0, 0)
                     ),
                     (
                         '〇',
-                        PinyinList((
-                            py(Initials::L, Finals::Ing, Tones::Two),
-                            Some(py(Initials::Y, Finals::Uan, Tones::Two)),
-                            Some(py(Initials::X, Finals::Ing, Tones::One))
-                        ))
+                        Polyphone(py(Initials::L, Finals::Ing, Tones::Two).into(), 0, 0,)
                     ),
                 ]
             ))

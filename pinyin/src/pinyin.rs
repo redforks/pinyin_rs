@@ -121,7 +121,7 @@ pub enum Tones {
 }
 
 #[bitfield]
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
 pub struct Pinyin {
     tones: Tones,
     initials: Initials,
