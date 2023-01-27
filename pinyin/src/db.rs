@@ -47,6 +47,10 @@ impl DB {
         }
     }
 
+    pub fn load(s: &str) -> Result<Self, nom::error::Error<&str>> {
+        parser::parse_db(s)
+    }
+
     pub fn get(&self, c: char) -> Option<Polyphone> {
         let code_point = c as u32;
         let page = (code_point >> 8) as u16;

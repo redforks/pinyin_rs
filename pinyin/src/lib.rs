@@ -2,6 +2,12 @@ mod db;
 mod pinyin;
 pub use crate::pinyin::Pinyin;
 
+lazy_static::lazy_static! {
+    pub static ref DB: db::DB = {
+        db::DB::load(include_str!("pinyin.txt")).unwrap()
+    };
+}
+
 /// How to represent the tone of a pinyin syllable.
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "swagger", derive(utoipa::ToSchema))]
