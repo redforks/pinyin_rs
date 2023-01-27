@@ -1,14 +1,14 @@
-use crate::pinyin::Initials;
+use crate::pinyin::{FinalWithTones, Initials};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
-    character::complete::char,
-    character::complete::hex_digit1,
+    character::complete::{char, hex_digit1},
     combinator::{map_res, value},
     sequence::{pair, preceded},
-    IResult,
+    IResult, InputTakeAtPosition,
 };
 use std::num::ParseIntError;
+use std::str::FromStr;
 
 fn comment(i: &str) -> IResult<&str, ()> {
     value(
@@ -58,9 +58,40 @@ fn initials(i: &str) -> IResult<&str, Initials> {
     ))(i)
 }
 
+#[rustfmt::skip]
+fn is_pinyin_char(c: char) -> bool {
+    if c.is_ascii_alphabetic() {
+        true
+    } else {
+        matches!(c,
+            'ā' | 'á' | 'ǎ' | 'à' |
+            'ē' | 'é' | 'ě' | 'è' |
+            'ī' | 'í' | 'ǐ' | 'ì' |
+            'ō' | 'ó' | 'ǒ' | 'ò' |
+            'ū' | 'ú' | 'ǔ' | 'ù' |
+            'ǖ' | 'ǘ' | 'ǚ' | 'ǜ' |
+            'ü')
+    }
+}
+
+fn final_and_tones(i: &str) -> IResult<&str, FinalWithTones> {
+    let (i, s) =
+        i.split_at_position1_complete(|x| !is_pinyin_char(x), nom::error::ErrorKind::Alpha)?;
+    let r = FinalWithTones::from_str(s);
+    match r {
+        Ok(r) => Ok((i, r)),
+        Err(_) => Err(nom::Err::Error(nom::error::Error::new(
+            i,
+            nom::error::ErrorKind::AlphaNumeric,
+        ))),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pinyin::{Finals, Tones};
+    use rstest::rstest;
 
     #[test]
     fn parse_comment() {
@@ -81,5 +112,13 @@ mod tests {
         assert_eq!(initials("c"), Ok(("", Initials::C)));
         assert_eq!(initials("y"), Ok(("", Initials::Y)));
         assert_eq!(initials("zh"), Ok(("", Initials::ZH)));
+    }
+
+    #[rstest]
+    #[case("a", Finals::A, Tones::None)]
+    #[case("á", Finals::A, Tones::Two)]
+    #[case("ang", Finals::Ang, Tones::None)]
+    fn parse_final_and_tones(#[case] s: &str, #[case] finals: Finals, #[case] tones: Tones) {
+        assert_eq!(final_and_tones(s), Ok(("", FinalWithTones(finals, tones))));
     }
 }

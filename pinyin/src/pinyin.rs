@@ -148,10 +148,10 @@ pub enum PinyinDisplay {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct FinalWithTones(Finals, Tones);
+pub(crate) struct FinalWithTones(pub(crate) Finals, pub(crate) Tones);
 
 #[derive(Debug)]
-struct FinalWithTonesFromStrError(String);
+pub(crate) struct FinalWithTonesFromStrError(String);
 
 impl Display for FinalWithTonesFromStrError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
