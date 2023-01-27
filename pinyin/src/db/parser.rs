@@ -3,9 +3,10 @@ use crate::Pinyin;
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
-    character::complete::{char, hex_digit1},
+    character::complete::{char, hex_digit1, space0},
     combinator::{map_res, opt, value},
-    sequence::{pair, preceded},
+    multi::separated_list1,
+    sequence::{pair, preceded, separated_pair, terminated, tuple},
     IResult, InputTakeAtPosition,
 };
 use std::num::ParseIntError;
@@ -14,7 +15,7 @@ use std::str::FromStr;
 fn comment(i: &str) -> IResult<&str, ()> {
     value(
         (), // Output is thrown away.
-        pair(char('#'), is_not("\n\r")),
+        tuple((space0, char('#'), is_not("\n\r"))),
     )(i)
 }
 
@@ -100,6 +101,35 @@ fn pinyin(i: &str) -> IResult<&str, Pinyin> {
     ))
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct PinyinList((Pinyin, Option<Pinyin>, Option<Pinyin>));
+
+impl From<Vec<Pinyin>> for PinyinList {
+    fn from(value: Vec<Pinyin>) -> Self {
+        let mut iter = value.into_iter();
+        let first = iter.next().unwrap();
+        let second = iter.next();
+        let third = iter.next();
+        PinyinList((first, second, third))
+    }
+}
+
+fn parse_line(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
+    match comment(i) {
+        Ok((i, _)) => Ok((i, None)),
+        Err(err) => match err {
+            nom::Err::Error(_) => {
+                let pn_list = separated_list1(char(','), pinyin);
+                let char_and_pinyin = separated_pair(code_point, tag(": "), pn_list);
+                let mut line = terminated(char_and_pinyin, opt(comment));
+                let (remains, (ch, pinyin_list)) = line(i)?;
+                Ok((remains, Some((ch, pinyin_list.into()))))
+            }
+            _ => Err(err),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -109,6 +139,8 @@ mod tests {
     #[test]
     fn parse_comment() {
         assert_eq!(comment("# Hello world"), Ok(("", ())));
+        assert_eq!(comment(" # Hello world"), Ok(("", ())));
+        assert_eq!(comment("  # Hello world"), Ok(("", ())));
         assert_eq!(comment("# Hello world\n"), Ok(("\n", ())));
         assert_eq!(comment("# Hello world\r\n"), Ok(("\r\n", ())));
     }
@@ -145,5 +177,54 @@ mod tests {
         #[case] tones: Tones,
     ) {
         assert_eq!(pinyin(s), Ok(("", py(initials, finals, tones))));
+    }
+
+    #[test]
+    fn vec_to_pinyin_list() {
+        let py1 = py(Initials::None, Finals::A, Tones::None);
+        let v = vec![py1];
+        let p = PinyinList::from(v);
+        assert_eq!(p.0, (py1, None, None));
+    }
+
+    #[test]
+    fn test_parse_line() {
+        assert_eq!(parse_line("# Hello world"), Ok(("", None)));
+        assert_eq!(
+            parse_line("+U4E2D: zhōng"),
+            Ok((
+                "",
+                Some((
+                    '中',
+                    PinyinList::from(vec![py(Initials::ZH, Finals::Ong, Tones::One)])
+                ))
+            ))
+        );
+        assert_eq!(
+            parse_line("+U4E2D: zhōng,zhòng"),
+            Ok((
+                "",
+                Some((
+                    '中',
+                    PinyinList::from(vec![
+                        py(Initials::ZH, Finals::Ong, Tones::One),
+                        py(Initials::ZH, Finals::Ong, Tones::Four)
+                    ])
+                ))
+            ))
+        );
+        assert_eq!(
+            parse_line("+U4E2D: zhōng,zhòng # comment"),
+            Ok((
+                "",
+                Some((
+                    '中',
+                    PinyinList::from(vec![
+                        py(Initials::ZH, Finals::Ong, Tones::One),
+                        py(Initials::ZH, Finals::Ong, Tones::Four),
+                    ])
+                ))
+            ))
+        );
     }
 }
