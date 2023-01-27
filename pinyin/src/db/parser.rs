@@ -223,9 +223,9 @@ mod tests {
         assert_eq!(
             parse_lines(
                 r#" # comment
-+U4E2D: zhōng
+U+4E2D: zhōng
 
-+U3007: líng,yuán,xīng  # 〇
+U+3007: líng,yuán,xīng  # 〇
 "#
             ),
             Ok((
@@ -237,7 +237,11 @@ mod tests {
                     ),
                     (
                         '〇',
-                        Polyphone(py(Initials::L, Finals::Ing, Tones::Two).into(), 0, 0,)
+                        Polyphone(
+                            py(Initials::L, Finals::Ing, Tones::Two).into(),
+                            py(Initials::Y, Finals::Uan, Tones::Two).into(),
+                            py(Initials::X, Finals::Ing, Tones::One).into()
+                        )
                     ),
                 ]
             ))
