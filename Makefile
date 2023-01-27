@@ -10,3 +10,6 @@ build:
 
 run:
 	cd pinyin_svc/; cargo run
+
+arm-release:
+	cd pinyin_svc/; RUSTFLAGS="-C target-cpu=neoverse-n1" cargo build --target=aarch64-unknown-linux-gnu --release --no-default-features
