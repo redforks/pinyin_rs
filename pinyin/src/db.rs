@@ -37,7 +37,7 @@ impl From<Vec<Pinyin>> for Polyphone {
 /// Pinyin database for each chinese character.
 /// Indexed by unicode code point.
 pub struct DB {
-    pages: HashMap<u8, [Polyphone; 256]>,
+    pages: HashMap<u16, [Polyphone; 256]>,
 }
 
 impl DB {
@@ -49,7 +49,7 @@ impl DB {
 
     pub fn get(&self, c: char) -> Option<Polyphone> {
         let code_point = c as u32;
-        let page = (code_point >> 8) as u8;
+        let page = (code_point >> 8) as u16;
         let offset = code_point as u8;
         self.pages.get(&page).and_then(|page| {
             let r = page[offset as usize];
@@ -63,8 +63,8 @@ impl DB {
 
     pub fn insert(&mut self, c: char, polyphone: Polyphone) {
         let code_point = c as u32;
-        debug_assert!(code_point <= 0xffff);
-        let page = (code_point >> 8) as u8;
+        debug_assert!(code_point <= 0xffffff);
+        let page = (code_point >> 8) as u16;
         let offset = code_point as u8;
         let page = self
             .pages
