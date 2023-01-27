@@ -1,9 +1,10 @@
 mod db;
 mod pinyin;
 pub use crate::pinyin::Pinyin;
+use std::fmt::Write;
 
 lazy_static::lazy_static! {
-    pub static ref DB: db::DB = {
+    static ref DB: db::DB = {
         db::DB::load(include_str!("pinyin.txt")).unwrap()
     };
 }
@@ -25,38 +26,56 @@ impl Default for ToneRepresentation {
 }
 
 /// Return pinyin of a Chinese characters separated by space.
-pub fn pinyin(_s: &str, _tone_repr: ToneRepresentation) -> String {
-    todo!()
-    // let mut result = String::new();
-    // for c in s.chars() {
-    //     if let Some(pinyin) = pinyin::pinyin(c) {
-    //         let pinyin = match tone {
-    //             ToneRepresentation::None => pinyin.without_tone(),
-    //             ToneRepresentation::Numbered => pinyin.with_tone(),
-    //             ToneRepresentation::Unicode => pinyin.with_tone_mark(),
-    //         };
-    //         result.push_str(&pinyin);
-    //     } else {
-    //         result.push(c);
-    //     }
-    //     result.push(' ');
-    // }
-    // result
+pub fn pinyin(s: &str, tone_repr: ToneRepresentation) -> String {
+    let mut result = String::new();
+    for c in s.chars() {
+        if let Some(pinyin) = DB.get(c) {
+            let repr = match tone_repr {
+                ToneRepresentation::None => pinyin::PinyinDisplay::NoTones(pinyin.into()),
+                ToneRepresentation::Numbered => pinyin::PinyinDisplay::NumberedTone(pinyin.into()),
+                ToneRepresentation::Unicode => pinyin::PinyinDisplay::UnicodeTone(pinyin.into()),
+            };
+            write!(&mut result, "{}", repr).unwrap();
+        } else {
+            result.push(c);
+        }
+        result.push(' ');
+    }
+    result
 }
 
 /// Replace Chinese characters with their first letter. Ignore non-printable characters.
-/// Non Chinese characters are kept as is. If a character has multiple pinyin,
-/// all combinations are returned separated by space.
-pub fn first_letters(_s: &str) -> String {
-    todo!()
-    // let mut result = String::new();
-    // for c in s.chars() {
-    //     if let Some(pinyin) = pinyin::pinyin(c) {
-    //         result.push_str(&pinyin.first_letter());
-    //     } else {
-    //         result.push(c);
-    //     }
-    //     result.push(' ');
-    // }
-    // result
+/// Non Chinese characters are kept as is.
+pub fn first_letters(s: &str) -> String {
+    let mut result = String::new();
+    for c in s.chars() {
+        if let Some(pinyin) = DB.get(c) {
+            write!(
+                &mut result,
+                "{}",
+                pinyin::PinyinDisplay::FirstLetter(pinyin.into())
+            )
+            .unwrap();
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pinyin() {
+        assert_eq!(pinyin("你好", ToneRepresentation::None), "ni hao ");
+        assert_eq!(pinyin("你好", ToneRepresentation::Numbered), "ni3 hao3 ");
+        assert_eq!(pinyin("你好", ToneRepresentation::Unicode), "nǐ hǎo ");
+    }
+
+    #[test]
+    fn test_first_letters() {
+        assert_eq!(first_letters("你l好"), "nlh");
+    }
 }

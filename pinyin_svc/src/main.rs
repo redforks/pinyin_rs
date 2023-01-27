@@ -1,15 +1,16 @@
-use std::net::{Ipv4Addr, SocketAddr};
+use pinyin::ToneRepresentation;
+use pinyin_svc::UrlEncodedString;
 use serde::Deserialize;
-use warp::{Filter, Reply};
-#[cfg(feature = "swagger")]
-use warp::{http::{Response, StatusCode, Uri},
-           path::{FullPath, Tail},
-           Rejection,
-};
+use std::net::{Ipv4Addr, SocketAddr};
 #[cfg(feature = "swagger")]
 use utoipa_swagger_ui::Config;
-use pinyin::{ToneRepresentation};
-use pinyin_svc::UrlEncodedString;
+#[cfg(feature = "swagger")]
+use warp::{
+    http::{Response, StatusCode, Uri},
+    path::{FullPath, Tail},
+    Rejection,
+};
+use warp::{Filter, Reply};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -19,12 +20,13 @@ async fn main() {
         .and(warp::get())
         .and(warp::query::<PinYinQuery>())
         .map(pinyin_handler);
-    let first_letters = warp::path!("first-letter"/ UrlEncodedString)
+    let first_letters = warp::path!("first-letter" / UrlEncodedString)
         .and(warp::get())
         .map(first_letters_handler);
     let web = pinyin.or(first_letters);
     let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 3030));
-    #[cfg(feature = "swagger")] {
+    #[cfg(feature = "swagger")]
+    {
         use utoipa::OpenApi;
 
         #[derive(OpenApi)]
@@ -46,7 +48,8 @@ async fn main() {
         warp::serve(web).run(addr).await
     }
 
-    #[cfg(not(feature = "swagger"))] {
+    #[cfg(not(feature = "swagger"))]
+    {
         warp::serve(web).run(addr).await
     }
 }
@@ -70,13 +73,13 @@ utoipa::path(
 ))]
 fn pinyin_handler(s: UrlEncodedString, q: PinYinQuery) -> impl Reply {
     let s: String = s.into();
-     pinyin::pinyin(&s, q.tone_repr)
+    pinyin::pinyin(&s, q.tone_repr)
 }
 
 #[cfg_attr(feature = "swagger",
 utoipa::path(
     get,
-    path = "/first-letters/{s}",
+    path = "/first-letter/{s}",
     responses((status = 200, description = "Replace Chinese characters with their first letter.")),
     params(("s"=String, Path, description="String to convert"))
 ))]
