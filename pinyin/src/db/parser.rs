@@ -100,7 +100,7 @@ fn pinyin(i: &str) -> IResult<&str, Pinyin> {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-struct PinyinList((Pinyin, Option<Pinyin>, Option<Pinyin>));
+pub struct PinyinList(pub (Pinyin, Option<Pinyin>, Option<Pinyin>));
 
 impl From<Vec<Pinyin>> for PinyinList {
     fn from(value: Vec<Pinyin>) -> Self {
@@ -124,7 +124,7 @@ fn parse_line(i: &str) -> IResult<&str, Option<(char, PinyinList)>> {
     Ok((remains, Some((ch, pinyin_list.into()))))
 }
 
-fn parse_lines(i: &str) -> IResult<&str, Vec<(char, PinyinList)>> {
+pub fn parse_lines(i: &str) -> IResult<&str, Vec<(char, PinyinList)>> {
     let (remains, lines) = many0(alt((empty_line, comment, parse_line)))(i)?;
     let lines = lines.into_iter().filter_map(|x| x).collect();
     // let (remains, _) = opt(newline)(remains)?;
