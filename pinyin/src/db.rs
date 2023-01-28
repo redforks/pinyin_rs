@@ -1,5 +1,6 @@
 use crate::Pinyin;
-use std::collections::HashMap;
+use nohash_hasher::NoHashHasher;
+use std::{collections::HashMap, hash::BuildHasherDefault};
 
 mod parser;
 
@@ -37,13 +38,13 @@ impl From<Vec<Pinyin>> for Polyphone {
 /// Pinyin database for each chinese character.
 /// Indexed by unicode code point.
 pub struct DB {
-    pages: HashMap<u16, [Polyphone; 256]>,
+    pages: HashMap<u16, [Polyphone; 256], BuildHasherDefault<NoHashHasher<u16>>>,
 }
 
 impl DB {
     pub fn new() -> Self {
         Self {
-            pages: HashMap::new(),
+            pages: HashMap::with_capacity_and_hasher(1000, BuildHasherDefault::default()),
         }
     }
 
