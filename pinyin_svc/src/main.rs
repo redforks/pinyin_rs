@@ -1,4 +1,4 @@
-use pinyin::ToneRepresentation;
+use piny::ToneRepresentation;
 use pinyin_svc::UrlEncodedString;
 use serde::Deserialize;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -73,7 +73,7 @@ utoipa::path(
 ))]
 fn pinyin_handler(s: UrlEncodedString, q: PinYinQuery) -> impl Reply {
     let s: String = s.into();
-    pinyin::pinyin(&s, q.tone_repr)
+    piny::pinyin(&s, q.tone_repr)
 }
 
 #[cfg_attr(feature = "swagger",
@@ -85,7 +85,7 @@ utoipa::path(
 ))]
 fn first_letters_handler(s: UrlEncodedString) -> impl Reply {
     let s: String = s.into();
-    pinyin::first_letters(&s)
+    piny::first_letters(&s)
 }
 
 #[cfg(feature = "swagger")]
