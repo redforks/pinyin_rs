@@ -38,7 +38,10 @@ impl From<Vec<Pinyin>> for Polyphone {
 /// Pinyin database for each chinese character.
 /// Indexed by unicode code point.
 pub struct DB {
+    #[cfg(feature = "polyphone")]
     pages: HashMap<u16, [Polyphone; 256], BuildHasherDefault<NoHashHasher<u16>>>,
+    #[cfg(not(feature = "polyphone"))]
+    pages: HashMap<u16, [Pinyin; 256], BuildHasherDefault<NoHashHasher<u16>>>,
 }
 
 impl DB {
@@ -52,6 +55,7 @@ impl DB {
         parser::parse_db(s)
     }
 
+    #[cfg(feature = "polyphone")]
     pub fn get(&self, c: char) -> Option<Polyphone> {
         let code_point = c as u32;
         let page = (code_point >> 8) as u16;
@@ -66,6 +70,22 @@ impl DB {
         })
     }
 
+    #[cfg(not(feature = "polyphone"))]
+    pub fn get(&self, c: char) -> Option<Pinyin> {
+        let code_point = c as u32;
+        let page = (code_point >> 8) as u16;
+        let offset = code_point as u8;
+        self.pages.get(&page).and_then(|page| {
+            let r = page[offset as usize];
+            if r == Pinyin::default() {
+                None
+            } else {
+                Some(r)
+            }
+        })
+    }
+
+    #[cfg(feature = "polyphone")]
     pub fn insert(&mut self, c: char, polyphone: Polyphone) {
         let code_point = c as u32;
         debug_assert!(code_point <= 0xffffff);
@@ -77,6 +97,20 @@ impl DB {
             .or_insert_with(|| [Polyphone::default(); 256]);
         debug_assert_eq!(page[offset as usize], Polyphone::default());
         page[offset as usize] = polyphone;
+    }
+
+    #[cfg(not(feature = "polyphone"))]
+    pub fn insert(&mut self, c: char, polyphone: Polyphone) {
+        let code_point = c as u32;
+        debug_assert!(code_point <= 0xffffff);
+        let page = (code_point >> 8) as u16;
+        let offset = code_point as u8;
+        let page = self
+            .pages
+            .entry(page)
+            .or_insert_with(|| [Pinyin::default(); 256]);
+        debug_assert_eq!(page[offset as usize], Pinyin::default());
+        page[offset as usize] = polyphone.into();
     }
 
     pub fn shrink_to_fit(&mut self) {
@@ -111,6 +145,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "polyphone")]
     fn db_put_get() {
         let mut db = DB::new();
         let polyphone = Polyphone::new(1, 0, 0);
@@ -119,6 +154,19 @@ mod tests {
 
         db.insert('汉', polyphone);
         assert_eq!(db.get('汉'), Some(polyphone));
+        assert_eq!(db.get('b'), None);
+    }
+
+    #[test]
+    #[cfg(not(feature = "polyphone"))]
+    fn db_put_get() {
+        let mut db = DB::new();
+        let pinyin = Pinyin::new(1, 0, 0);
+        db.insert('a', py(Initials::None, Finals::A, Tones::None));
+        assert_eq!(db.get('a'), Some(pinyin));
+
+        db.insert('汉', pinyin);
+        assert_eq!(db.get('汉'), Some(pinyin));
         assert_eq!(db.get('b'), None);
     }
 }

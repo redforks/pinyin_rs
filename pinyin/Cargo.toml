@@ -19,8 +19,9 @@ strum_macros = "0.24.3"
 utoipa = {version = "2.4.2", optional = true}
 
 [features]
+polyphone=[]
 swagger = ["utoipa"]
-default = ["swagger"]
+default = ["swagger", "polyphone"]
 
 [dev-dependencies]
 itertools = "0.10.5"
